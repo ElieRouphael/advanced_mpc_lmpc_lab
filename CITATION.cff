@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: "Advanced MPC & Learning MPC Lab"
+message: "If you use this educational repository, please cite it and the references listed in docs/references.md."
+type: software
+authors:
+  - family-names: Rouphael
+    given-names: Elie
+version: 0.1.0
+date-released: 2026-09-22
+license: MIT
