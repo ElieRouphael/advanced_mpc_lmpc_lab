@@ -5,6 +5,6 @@ type: software
 authors:
   - family-names: Rouphael
     given-names: Elie
-version: 0.1.0
-date-released: 2026-09-22
+version: 0.2.0
+date-released: 2026-10-01
 license: MIT

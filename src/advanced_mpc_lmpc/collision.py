@@ -43,7 +43,7 @@ def vehicle_matrices(Ts=1.0, discretization="euler"):
     """
     State x=[d,v], input a.
 
-    'euler' reproduces the supplied workshop:
+    'euler' is the simple forward-Euler model used in notebook 04:
         d+ = d + Ts v
         v+ = v + Ts a
 
@@ -127,27 +127,25 @@ def solve_collision_strategy(
         'yield' -> stay on the near side of the conflict region
         'pass'  -> clear the far side of the conflict region
 
-    The default N=4, Ts=1, Qv=3, Ru=1, Pv=3, v_ref=20, mu=0.10,
-    v_max=32 and Euler dynamics reproduce the numerical setup of the
-    supplied workshop, except that the default yield boundary uses the
-    geometrically collision-free d_max from the accompanying slides.
+    The defaults N=4, Ts=1, Qv=3, Ru=1, Pv=3, v_ref=20, mu=0.10,
+    v_max=32 with Euler dynamics are the nominal scenario of notebook 04.
+    The default yield boundary is the geometrically collision-free d_max.
 
     Parameters
     ----------
     conflict_steps:
         Prediction steps (1,...,N) at which the conflict exclusion is
-        enforced.  None means terminal step N only, matching the workshop's
-        T=t_min special case.
+        enforced.  None means terminal step N only, i.e. the case where the
+        bike reaches the crossing exactly at the end of the horizon.
     yield_boundary:
-        'geometric'       -> d <= d_max from vehicle/bike geometry.
-        'workshop_center' -> d <= d_bike, reproducing the looser modified
-                             constraint visible in the supplied notebook.
+        'geometric'   -> d <= d_max from the vehicle and bike geometry.
+        'center_line' -> d <= d_bike, a looser bound that only keeps the car
+                         short of the bike's centre line (not collision-free).
     terminal_stop:
-        If True, additionally enforce v_N=0 for the yield strategy.
-        The supplied workshop has this constraint commented out.
+        If True, additionally enforce v_N=0 for the yield strategy
+        (off by default: yielding does not require stopping).
     discretization:
-        'euler' reproduces the supplied notebook; 'zoh' is an explicitly
-        marked modeling extension.
+        'euler' (default) or 'zoh', the exact zero-order-hold model.
     """
     x0 = np.asarray(x0, float).reshape(2)
     strategy = str(strategy).lower()
@@ -165,11 +163,11 @@ def solve_collision_strategy(
     d_max, d_min = conflict_bounds(d_bike, l_car, w_bike)
     if yield_boundary == "geometric":
         d_yield = d_max
-    elif yield_boundary == "workshop_center":
+    elif yield_boundary == "center_line":
         d_yield = float(d_bike)
     else:
         raise ValueError(
-            "yield_boundary must be 'geometric' or 'workshop_center'"
+            "yield_boundary must be 'geometric' or 'center_line'"
         )
 
     d_pass = d_min
@@ -355,7 +353,7 @@ def terminal_position_extrema_no_speed_limits(
     g=9.81,
 ):
     """
-    Analytic terminal-position extrema for the *Euler* workshop model
+    Analytic terminal-position extrema for the *Euler* vehicle model
     when speed constraints are inactive.
 
     d_N = d_0 + N Ts v_0

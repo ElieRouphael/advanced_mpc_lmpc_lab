@@ -10,6 +10,7 @@ dist/
 .DS_Store
 figures/generated/
 
-# Downloaded third-party reference PDFs (docs/references/README.md documents
-# sources/provenance and stays tracked; the binaries themselves stay local).
+# Local copies of third-party reference PDFs are never committed
+# (docs/references.md links to the official free copies instead).
 docs/references/*.pdf
+.pytest_cache/

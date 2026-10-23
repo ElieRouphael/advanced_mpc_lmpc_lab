@@ -62,19 +62,25 @@ class HPolytope:
         return pts[hull.vertices]
 
     def remove_redundancy(self, tol=1e-8):
+        """Drop inequalities implied by the others.
+
+        Each row is tested against the rows still kept, not against all the
+        original rows: otherwise two identical rows would each be implied by
+        the other and both would be dropped, enlarging the set.
+        """
         H, h = self.H, self.h
-        keep = []
         n = H.shape[1]
+        kept = list(range(H.shape[0]))
         for i in range(H.shape[0]):
-            idx = [j for j in range(H.shape[0]) if j != i]
-            if not idx:
-                keep.append(i); continue
-            # Is row i implied by all others? Maximize H_i x under other rows.
-            res = linprog(-H[i], A_ub=H[idx], b_ub=h[idx], bounds=[(None, None)]*n,
+            others = [j for j in kept if j != i]
+            if not others:
+                continue
+            # Row i is redundant if max H_i x over the other rows is <= h_i.
+            res = linprog(-H[i], A_ub=H[others], b_ub=h[others], bounds=[(None, None)]*n,
                           method="highs")
-            if (not res.success) or (-res.fun > h[i] + tol):
-                keep.append(i)
-        return HPolytope(H[keep], h[keep])
+            if res.success and -res.fun <= h[i] + tol:
+                kept.remove(i)
+        return HPolytope(H[kept], h[kept])
 
     def approximately_equal(self, other: "HPolytope", tol=1e-6):
         if self.H.shape[1] != 2 or other.H.shape[1] != 2:
