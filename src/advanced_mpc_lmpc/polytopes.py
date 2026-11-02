@@ -62,14 +62,20 @@ class HPolytope:
         return pts[hull.vertices]
 
     def remove_redundancy(self, tol=1e-8):
+        """Drop every row implied by the others, one linear program per row.
+
+        Row i is redundant if max H_i x over the other rows is at most h_i.  Each row
+        is tested against the rows still kept plus the rows not yet tested, never
+        against a row already dropped: two identical rows would otherwise each be
+        implied by the other and both be dropped, enlarging the set.
+        """
         H, h = self.H, self.h
         keep = []
         n = H.shape[1]
         for i in range(H.shape[0]):
-            idx = [j for j in range(H.shape[0]) if j != i]
+            idx = keep + list(range(i + 1, H.shape[0]))
             if not idx:
                 keep.append(i); continue
-            # Is row i implied by all others? Maximize H_i x under other rows.
             res = linprog(-H[i], A_ub=H[idx], b_ub=h[idx], bounds=[(None, None)]*n,
                           method="highs")
             if (not res.success) or (-res.fun > h[i] + tol):

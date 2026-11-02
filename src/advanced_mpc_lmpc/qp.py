@@ -60,7 +60,7 @@ def stack_inequalities(n, A_ub=None, b_ub=None, lb=None, ub=None):
 
 
 def solve_qp(H, f=None, A_ub=None, b_ub=None, A_eq=None, b_eq=None,
-             lb=None, ub=None, x0=None, tol=1e-9, maxiter=100, sigma=0.1):
+             lb=None, ub=None, x0=None, tol=1e-9, maxiter=100, sigma=0.1, trace=None):
     """Solve the convex QP by a primal-dual interior-point method.
 
     H must be positive semidefinite (it is symmetrised).  `x0` is accepted for
@@ -77,6 +77,7 @@ def solve_qp(H, f=None, A_ub=None, b_ub=None, A_eq=None, b_eq=None,
     taken as the active set and the equality-constrained QP on that set is
     solved exactly; the polished point is kept if it is feasible and its
     multipliers are non-negative, which brings the solution to round-off.
+    If `trace` is a list, every iterate (z, s, lam, residual, mu) is appended to it.
     """
     H = np.asarray(H, float)
     H = 0.5 * (H + H.T)
@@ -107,6 +108,8 @@ def solve_qp(H, f=None, A_ub=None, b_ub=None, A_eq=None, b_eq=None,
         mu = (s @ lam) / m if m else 0.0               # average complementarity s_i * lam_i
         rc = sigma * mu - s * lam                      # centred complementarity residual
         resid = max(np.abs(rd).max(initial=0.0), np.abs(rp).max(initial=0.0), np.abs(re).max(initial=0.0))
+        if trace is not None:
+            trace.append((z.copy(), s.copy(), lam.copy(), resid, mu))
         if resid < tol and mu < tol:
             break
         # Newton step on the reduced system: s and lam are eliminated, leaving (dz, dnu)
@@ -130,30 +133,41 @@ def solve_qp(H, f=None, A_ub=None, b_ub=None, A_eq=None, b_eq=None,
             neg_s, neg_l = ds < 0, dl < 0
             if neg_s.any(): a = min(a, float(np.min(-0.99 * s[neg_s] / ds[neg_s])))
             if neg_l.any(): a = min(a, float(np.min(-0.99 * lam[neg_l] / dl[neg_l])))
-        z = z + a * dz; s = s + a * ds; lam = lam + a * dl; nu = nu + a * dnu
-        if not np.all(np.isfinite(z)):
-            break
+        zn, sn, ln, nn = z + a * dz, s + a * ds, lam + a * dl, nu + a * dnu
+        if not (np.all(np.isfinite(zn)) and np.all(np.isfinite(sn)) and np.all(np.isfinite(ln)) and np.all(np.isfinite(nn))):
+            break                                      # keep the last finite iterate for the polish
+        z, s, lam, nu = zn, sn, ln, nn
+        if a < 1e-12:
+            break                                      # stalled at the boundary (a degenerate optimum): polish
 
-    # polish: solve the equality-constrained QP on the active set, accept it if it is feasible and dual feasible
-    if np.all(np.isfinite(z)) and resid < 1e-4:
-        act = np.where(lam > s)[0] if m else np.zeros(0, int)
+    # polish: solve the equality-constrained QP on the active set, accept it if it is feasible and dual feasible.
+    # It runs whenever the primal residuals are small, even if the dual ones are not: when more constraints are
+    # active than there are variables (a degenerate optimum) the multipliers are not unique and the interior
+    # point drifts among them, so the polish recovers one set by least squares, then non-negative least squares.
+    prim = max((np.abs(G @ z + s - g).max() if m else 0.0), (np.abs(E @ z - e).max() if p else 0.0))
+    if np.all(np.isfinite(z)) and prim < 1e-6:
+        act = np.where((lam > s) | (s <= 1e-7 * (1.0 + np.abs(g))))[0] if m else np.zeros(0, int)   # pressed against, or touched
         Ga = G[act]
         k = len(act)
         Mp = np.zeros((n + k + p, n + k + p))
         Mp[:n, :n] = H; Mp[:n, n:n + k] = Ga.T; Mp[n:n + k, :n] = Ga
         Mp[:n, n + k:] = E.T; Mp[n + k:, :n] = E
-        try:
-            sol = np.linalg.solve(Mp, np.r_[-f, g[act], e])
-            zp, lp, nup = sol[:n], sol[n:n + k], sol[n + k:]
-            if np.all(np.isfinite(zp)) and (not m or np.max(G @ zp - g) <= 1e-9) and np.all(lp >= -1e-9)                     and (not p or np.max(np.abs(E @ zp - e)) <= 1e-9):
+        sol = np.linalg.lstsq(Mp, np.r_[-f, g[act], e], rcond=None)[0]
+        zp, lp, nup = sol[:n], sol[n:n + k], sol[n + k:]
+        if np.all(np.isfinite(zp)) and (not m or np.max(G @ zp - g) <= 1e-9) and (not p or np.max(np.abs(E @ zp - e)) <= 1e-9):
+            grad = H @ zp + f
+            if np.any(lp < -1e-9) or np.abs(grad + Ga.T @ lp + E.T @ nup).max(initial=0.0) > 1e-8:
+                from scipy.optimize import nnls
+                C = np.hstack([Ga.T, E.T, -E.T]) if (k or p) else np.zeros((n, 0))
+                coef = nnls(C, -grad)[0] if C.shape[1] else np.zeros(0)
+                lp, nup = coef[:k], coef[k:k + p] - coef[k + p:]
+            rd = grad + Ga.T @ lp + E.T @ nup
+            if np.all(lp >= -1e-9) and np.abs(rd).max(initial=0.0) <= 1e-7:
                 z, nu = zp, nup
                 lam = np.zeros(m); lam[act] = np.maximum(lp, 0.0)
                 s = g - G @ z
-                rd = H @ z + f + G.T @ lam + E.T @ nu
                 resid = max(np.abs(rd).max(initial=0.0), (np.abs(E @ z - e).max() if p else 0.0))
                 mu = 0.0
-        except np.linalg.LinAlgError:
-            pass
 
     viol = [0.0]
     if m: viol.append(float(np.max(G @ z - g)))
