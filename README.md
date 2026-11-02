@@ -16,12 +16,23 @@ The repository is designed around one principle:
 | `03_mpc_stability_and_terminal_sets.ipynb` | classical MPC | DARE, LQR terminal controller, recursive feasibility, Lyapunov decrease |
 | `04_collision_avoidance_cftoc.ipynb` | autonomous-driving CFTOC | friction-limited actuation, logical strategies, feasibility maps |
 | `05_learning_mpc_double_integrator.ipynb` | Learning MPC | sampled/convex safe set, barycentric coordinates, empirical value function |
-| `06_frenet_minimum_time_racing.ipynb` | racing / Frenet coordinates | spatial dynamics, curvature-limited speed, minimum-time intuition |
-| `07_data_driven_local_models_for_racing.ipynb` | learning local dynamics | weighted local affine regression, LTV prediction models |
-| `08_dynamic_programming_to_rl.ipynb` | DP → RL | Bellman recursion, value iteration, Q-values |
-| `09_capstone_questions_and_extensions.ipynb` | synthesis | technical-defense questions + research extensions |
+| `06_frenet_minimum_time_racing.ipynb` | racing / Frenet coordinates | spatial dynamics, dynamic bicycle model, curvature-limited speed, minimum-time speed planning |
+| `07_data_driven_local_models_for_racing.ipynb` | learning local dynamics | kernel-weighted local regression, structured affine models, LTV prediction |
+| `08_dynamic_programming_to_rl.ipynb` | DP → RL | Bellman recursion, Riccati recursion, value and policy iteration, Q-learning |
+| `09_capstone_questions_and_extensions.ipynb` | capstone | end-to-end MPC design, Learning MPC iterations, derivations, extensions |
 
-The `src/advanced_mpc_lmpc/` package contains original, small-scale numerical tools used by the notebooks. They favor transparency over production-level solver performance.
+The `src/advanced_mpc_lmpc/` package contains original, small-scale numerical tools used by the notebooks. They favor transparency over production-level solver performance:
+
+| Module | Contents |
+|---|---|
+| `linear.py` | prediction matrices, discrete LQR |
+| `qp.py` | a small convex QP wrapper (SciPy) |
+| `polytopes.py` | H-polytopes, predecessor sets, invariant and control-invariant sets |
+| `mpc.py` | linear MPC with terminal ingredients, receding-horizon simulation |
+| `collision.py` | the vehicle–bike collision-avoidance CFTOC |
+| `lmpc.py` | Learning MPC with sampled and convex safe sets |
+| `racing.py` | track geometry, dynamic bicycle model, minimum-time speed planner, local and global learned racing models |
+| `plotting.py` | plotting helpers |
 
 ---
 
@@ -69,11 +80,15 @@ jupyter lab
 
 No commercial optimizer is required. The examples use SciPy-based optimization so the repository is easy to run. For high-rate or large-scale MPC, a dedicated QP/NLP solver is strongly preferable.
 
-## Quick smoke test
+## Tests
+
+From the repository root:
 
 ```bash
-python -m unittest discover -s tests -v
+python -m pytest
 ```
+
+This runs every test in `tests/` (the package is found through the `pytest` settings in `pyproject.toml`, so no install is needed for testing).
 
 To execute every notebook non-interactively:
 
@@ -118,10 +133,10 @@ V_N(x)=\min_{u_0,\ldots,u_{N-1}}\quad &
 \end{aligned}
 $$
 
-The LMPC notebook replaces hand-designed terminal information by successful closed-loop data. If stored safe states are arranged as columns of `S`, the terminal point is represented using barycentric weights
+The LMPC notebook replaces hand-designed terminal information by successful closed-loop data. With the stored safe states as the rows of `S`, the terminal point is represented using barycentric weights
 
 $$
-x_N=S\lambda,
+x_N=S^\top\lambda,
 \qquad
 \lambda\ge0,
 \qquad
@@ -150,17 +165,17 @@ For every notebook, write down the answer to these four questions before running
 3. **Guarantees:** What supports feasibility, stability, or safety?
 4. **Failure modes:** Which assumptions are likely to fail on a physical platform?
 
-The file [`docs/interview_oral_defense.md`](docs/interview_oral_defense.md) contains a concise technical-defense checklist.
+[`docs/key_ideas.md`](docs/key_ideas.md) summarizes the main ideas on one page, [`docs/mathematical_notes.md`](docs/mathematical_notes.md) collects the core derivations, and [`docs/exercises.md`](docs/exercises.md) lists further exercises.
 
 ## References and acknowledgements
 
-The exposition is original, while the subject progression and several motivating examples were informed by advanced control teaching material on optimization, MPC, invariant sets, Learning MPC, dynamic programming, and racing. See [`docs/references.md`](docs/references.md) for full acknowledgement and recommended reading.
+The text and code are original. The choice of topics and several motivating examples were informed by a 2025–2026 course on Learning MPC; see [`docs/references.md`](docs/references.md) for the full acknowledgement and recommended reading.
 
 ## License
 
-Original code and repository text: MIT License. See `LICENSE`.
+Code and text: MIT License. See `LICENSE`.
 
-External references and course materials retain their own licenses and copyrights; this repository does not redistribute those source files.
+Cited references and course materials keep their own licenses and copyrights; none of them is redistributed in this repository.
 
 
 ## VS Code / Jupyter rendering

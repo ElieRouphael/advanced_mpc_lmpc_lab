@@ -16,8 +16,11 @@
 | `C_inf` | maximal control-invariant set |
 | `SS^j` | sampled safe set through iteration `j` |
 | `CS^j` | convex safe set `conv(SS^j)` |
+| `S` | matrix whose rows are the stored safe states, so `x_N = S' lambda` |
 | `lambda` | barycentric weights for safe-set interpolation |
 | `V_N` | finite-horizon optimal value |
 | `Q^j` | LMPC empirical terminal value approximation |
 | `kappa(s)` | track centerline curvature |
-| `e_y,e_psi` | Frenet lateral and heading errors |
+| `s` | arc length along the track centerline |
+| `e_y,e_psi` | Frenet lateral and heading errors (`e_y > 0` to the left) |
+| `z = v^2` | speed squared, the decision variable of the spatial speed planner |

@@ -4,7 +4,7 @@ from advanced_mpc_lmpc.linear import dlqr, prediction_matrices
 from advanced_mpc_lmpc.polytopes import HPolytope, maximal_control_invariant
 from advanced_mpc_lmpc.mpc import LinearMPC, simulate_receding_horizon
 from advanced_mpc_lmpc.collision import choose_collision_strategy
-from advanced_mpc_lmpc.racing import synthetic_track, minimum_time_speed_profile
+from advanced_mpc_lmpc.racing import build_demo_track, periodic_minimum_time_speed_profile
 
 class TestCore(unittest.TestCase):
     def setUp(self):
@@ -42,8 +42,7 @@ class TestCore(unittest.TestCase):
         self.assertIsNotNone(best)
 
     def test_speed_profile_limits(self):
-        s=np.linspace(0,300,101); k=synthetic_track(s)
-        sol=minimum_time_speed_profile(s,k)
+        sol=periodic_minimum_time_speed_profile(build_demo_track(n=100))
         self.assertTrue(sol['success'])
         self.assertLessEqual(np.max(sol['a']),3.0+1e-8)
         self.assertGreaterEqual(np.min(sol['a']),-6.0-1e-8)

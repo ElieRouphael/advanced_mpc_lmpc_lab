@@ -98,7 +98,15 @@ $$
 V_N(x^+)-V_N(x)\le-\ell(x,u_0^\star).
 $$
 
-Hence the finite-horizon optimal value is a Lyapunov function under the usual positivity assumptions.
+This decrease is one of three Lyapunov conditions. With $\alpha_1,\alpha_2$ class-$\mathcal K$ functions, asymptotic stability of the origin (with region of attraction the feasible set $\mathcal X_N$) also needs
+
+$$
+V_N(x)\ge\alpha_1(\lVert x\rVert)\ \text{ on }\mathcal X_N,
+\qquad
+V_N(x)\le\alpha_2(\lVert x\rVert)\ \text{ near the origin.}
+$$
+
+The lower bound follows from a positive definite stage cost, $\ell(x,u)\ge\alpha_1(\lVert x\rVert)$. The upper bound follows from $V_N(x)\le V_f(x)$ on $\mathcal X_f$ when the terminal set contains the origin in its interior. With the terminal equality $x_N=0$ instead, $V_N$ can be discontinuous at the origin, and the upper bound needs an extra controllability assumption.
 
 ## 6. Predecessor and invariant sets
 
@@ -124,17 +132,19 @@ $$
 CS^j=\operatorname{conv}(SS^j).
 $$
 
-If `S` contains stored safe states as columns, the terminal equality is
+If the rows of `S` are the stored safe states, the terminal equality is
 
 $$
-x_N=S\lambda,\qquad \lambda\ge0,\qquad \mathbf 1^\top\lambda=1.
+x_N=S^\top\lambda,\qquad \lambda\ge0,\qquad \mathbf 1^\top\lambda=1.
 $$
 
-If `q` contains realized cost-to-go samples, the barycentric terminal value is
+If the vector `v` contains the realized costs-to-go of those states, the barycentric terminal value is
 
 $$
-V_f(x_N)\approx q^\top\lambda.
+V_f(x_N)=v^\top\lambda,
 $$
+
+and minimizing it over the admissible weights gives the convex envelope of the sampled costs-to-go.
 
 The LMPC QP jointly optimizes the finite-horizon inputs and the barycentric coordinates.
 

@@ -19,7 +19,7 @@ def test_geometric_conflict_bounds():
     assert np.isclose(dmin, 106.25)
 
 
-def test_workshop_euler_matrices():
+def test_euler_matrices():
     A, B = vehicle_matrices(Ts=1.0, discretization="euler")
     assert np.allclose(A, [[1.0, 1.0], [0.0, 1.0]])
     assert np.allclose(B, [[0.0], [1.0]])

@@ -76,7 +76,7 @@ def solve_ftocp_l1(
     warm=None,
 ):
     """
-    Convex finite-horizon problem used by the supplied double-integrator workshop:
+    Convex finite-horizon problem of the repeated double-integrator task (notebook 05):
 
         min sum_{k=0}^{N-1}
             x_k' Q x_k + u_k' R u_k + ||Q1 x_k||_1
@@ -263,9 +263,10 @@ class LMPCController:
     """
     Educational convex-safe-set LMPC for deterministic LTI repetitive tasks.
 
-    The controller stores successful trajectories. At each online solve,
+    The controller stores successful trajectories. With the stored safe states
+    as the rows of S, at each online solve
 
-        x_N = S lambda,
+        x_N = S' lambda,
         lambda >= 0,
         1'lambda = 1,
 
