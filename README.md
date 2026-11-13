@@ -26,7 +26,7 @@ The `src/advanced_mpc_lmpc/` package contains original, small-scale numerical to
 | Module | Contents |
 |---|---|
 | `linear.py` | prediction matrices, discrete LQR |
-| `qp.py` | a small convex QP wrapper (SciPy) |
+| `qp.py` | a dense primal–dual interior-point QP solver with multipliers and an active-set polish (NumPy); the earlier SciPy/SLSQP wrapper is kept for comparison, plus an LP feasibility certificate (HiGHS) |
 | `polytopes.py` | H-polytopes, predecessor sets, invariant and control-invariant sets |
 | `mpc.py` | linear MPC with terminal ingredients, receding-horizon simulation |
 | `collision.py` | the vehicle–bike collision-avoidance CFTOC |
@@ -78,7 +78,7 @@ pip install -e .
 jupyter lab
 ```
 
-No commercial optimizer is required. The examples use SciPy-based optimization so the repository is easy to run. For high-rate or large-scale MPC, a dedicated QP/NLP solver is strongly preferable.
+No commercial optimizer is required. The QPs are solved by the repository's own interior-point solver (`qp.py`), with SciPy for linear programs and the one nonlinear example, so the repository is easy to run. For high-rate or large-scale MPC, a dedicated QP/NLP solver is strongly preferable.
 
 ## Tests
 
@@ -95,6 +95,11 @@ To execute every notebook non-interactively:
 ```bash
 python scripts/run_all_notebooks.py
 ```
+
+The script runs NumPy with one BLAS thread (`OPENBLAS_NUM_THREADS=1`, unless you set it). The
+problems here are small and dense, and multi-threaded BLAS can make each solve much slower at
+this size; set the same variable before `jupyter lab` if the solve times you see are far above
+the ones printed in the notebooks.
 
 ## A first MPC example
 
@@ -116,8 +121,12 @@ mpc = LinearMPC(
     u_lower=[-1], u_upper=[1],
 )
 
-X, U, V = simulate_receding_horizon(mpc, x0=[-4, 0])
+X, U, qp_objectives = simulate_receding_horizon(mpc, x0=[-4, 0])
 ```
+
+`qp_objectives` are the values of the condensed QP, which omit terms that do not depend on the
+inputs (such as $x_0^\top Q x_0$); they are not $V_N(x)$. Notebook 03 recomputes the full cost
+before checking the Lyapunov decrease.
 
 ## Mathematical scope
 
@@ -152,7 +161,7 @@ This is an educational laboratory, not a certified autonomous-driving stack.
 - The collision example uses a low-order longitudinal model.
 - The racing speed planner is a reduced spatial model, not a full tire-force raceline optimizer.
 - The local vehicle model notebook demonstrates data-driven linearization; it is not a complete online racing LMPC implementation.
-- The small QP solver wrapper is chosen for readability, not hard real-time guarantees.
+- The small dense QP solver is chosen for readability, not hard real-time guarantees.
 
 Those limitations are discussed explicitly because understanding them is part of control engineering.
 
